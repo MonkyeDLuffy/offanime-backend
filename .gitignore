@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets (never commit real secrets)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build / coverage output
+dist/
+build/
+coverage/
+
+# Serverless platform local artifacts
+.vercel/
+.wrangler/
