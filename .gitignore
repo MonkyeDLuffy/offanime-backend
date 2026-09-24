@@ -6,6 +6,10 @@ node_modules/
 .env.local
 .env.*.local
 
+# Wrangler local dev secrets / state
+.dev.vars
+.dev.vars.*
+
 # Logs
 *.log
 logs/
