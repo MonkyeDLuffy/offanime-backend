@@ -1,11 +1,13 @@
 /**
  * Vercel deployment entrypoint (deployment adapter - contains NO business logic).
  *
- * Vercel's zero-config Express support globs candidate entrypoints in the order
- * `{app,index,server}.*` at the project root, then `{src/index,src/app,src/server}.*`,
- * and selects the first file that exists AND directly imports the `express`
- * package. This file is checked BEFORE `src/app.js`, so Vercel picks this
- * entrypoint instead of the (default-export-less) app factory.
+ * Selection is EXPLICIT, not heuristic: vercel.json pins this file as the only
+ * build entrypoint (`builds: [{ src: "index.js", use: "@vercel/node" }]`) and
+ * rewrites every request path to it. Vercel's zero-config Express detection is
+ * therefore disabled - empirically it prefers `src/app.js` (a valid import of
+ * express but a default-export-less module) and fails at runtime with
+ * "Invalid export found in module ... The default export must be a function
+ * or server." Pinning the entrypoint removes that failure mode entirely.
  *
  * The Vercel Node runtime requires the entrypoint module to provide a default
  * export (function), an HTTP-method export, a `fetch` export, or an
