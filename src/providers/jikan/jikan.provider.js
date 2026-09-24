@@ -78,23 +78,22 @@ export class JikanProvider extends BaseProvider {
   }
 
   /**
-   * Search anime on Jikan. Supports q/page/limit (Jikan caps limit at 25).
-   *
-   * @param {string} query
-   * @param {{ page?: number, limit?: number }} [options]
-   * @returns {Promise<Record<string, unknown>>} Raw Jikan payload
-   *   ({ pagination, data: [...] }).
-   */
-  /**
    * Fetch the RAW episode list for an anime (episode METADATA only - this
    * project never calls streaming providers or fabricates stream URLs).
+   *
+   * Jikan quirk handled here: when MyAnimeList's upstream is unavailable,
+   * Jikan responds HTTP 200 with an IN-BAND error body
+   * ({ status: 5xx, type, message }) and no `data` array. That body is
+   * detected BEFORE any `data` validation and mapped onto the typed error
+   * taxonomy (404 -> NotFoundError, else ProviderError) so a transient
+   * upstream outage never surfaces as "missing data".
    *
    * @param {number|string} malId MyAnimeList ID (NOT an AniList ID).
    * @param {{ page?: number }} [options]
    * @returns {Promise<Record<string, unknown>>} Raw Jikan payload
    *   ({ pagination, data: [...] }).
    */
-  async getEpisodeList(malId, { page = 1 } = {}) {
+  async getAnimeEpisodes(malId, { page = 1 } = {}) {
     const id = parseRequiredId(malId, 'malId');
     if (!Number.isInteger(page) || page < 1) {
       throw new ValidationError('Jikan episodes page must be a positive integer', { received: page });
@@ -113,6 +112,25 @@ export class JikanProvider extends BaseProvider {
     const payload = response.data;
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new ProviderError('Jikan returned a malformed response', { provider: this.name });
+    }
+
+    // Jikan in-band error body (HTTP 200 + { status: >=400, type, message }).
+    // Checked BEFORE the data-array validation; only the upstream status is
+    // reported - no unsafe body content.
+    const inBandStatus = Number(payload.status);
+    if (Number.isInteger(inBandStatus) && inBandStatus >= 400 && payload.type !== undefined) {
+      if (inBandStatus === 404) {
+        throw new NotFoundError(`No episode list on Jikan for MAL ID ${id}`);
+      }
+      throw new ProviderError('Jikan upstream failed while fetching episodes', {
+        provider: this.name,
+        statusCode: 502,
+        details: { upstreamStatus: inBandStatus },
+      });
+    }
+
+    if (!Array.isArray(payload.data)) {
+      throw new ProviderError('Jikan episodes payload is missing data', { provider: this.name });
     }
     return /** @type {Record<string, unknown>} */ (payload);
   }

@@ -58,7 +58,7 @@ export async function getEpisodes(malId, { page = 1 } = {}) {
   const id = parseRequiredId(malId, 'malId');
   return cacheManager.getOrLoad(
     `jikan:episodes:${id}:p${page}`,
-    async () => normalizeJikanEpisodes(await jikanProvider.getEpisodeList(id, { page })),
+    async () => normalizeJikanEpisodes(await jikanProvider.getAnimeEpisodes(id, { page })),
     {
       ttlSeconds: CACHE_TTL.MEDIUM,
       isValid: (value) => Boolean(value && typeof value === 'object' && Array.isArray(value.episodes)),

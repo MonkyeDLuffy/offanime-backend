@@ -47,4 +47,15 @@ export function animeSearchPath({ q, page, limit } = {}) {
  * @param {number} [page=1]
  * @returns {string}
  */
-export const animeEpisodesPath = (malId, page = 1) => `/anime/${malId}/episodes?page=${page}`;
+/**
+ * Page 1 omits the `page` param entirely (Jikan defaults to page 1 anyway) -
+ * the `?page=1` variant reproducibly hits a Jikan-side upstream failure
+ * (HTTP 200 + in-band { status: 500 } body) for some anime.
+ * @param {number} malId
+ * @param {number} [page=1]
+ * @returns {string}
+ */
+export const animeEpisodesPath = (malId, page = 1) => {
+  if (!Number.isInteger(page) || page <= 1) return `/anime/${malId}/episodes`;
+  return `/anime/${malId}/episodes?page=${page}`;
+};
